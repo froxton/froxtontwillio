@@ -8,16 +8,8 @@ class AuthenticationParameters(models.Model):
     account_sid = models.CharField(max_length=256, blank=False, null=False)
     auth_token = models.CharField(max_length=256, blank=False, null=False)
     phone_number = models.CharField(max_length=65, blank=False, null=False)
-    sms_password = models.CharField(max_length=32, blank=False, null=False, editable=False)
-    rand_identificator = models.CharField(max_length=32, blank=False, null=False, editable=False)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-
-    def save(self, *args, **kwargs):
-        if not self.sms_password and not self.rand_identificator:
-            self.sms_password = random_password_generator()
-            self.rand_identificator = random_password_generator()
-        super(AuthenticationParameters, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.account_sid

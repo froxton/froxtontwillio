@@ -9,52 +9,39 @@ from django.http import JsonResponse
 from twilio.rest import Client
 
 from .models import AuthenticationParameters, SentSms, MMSAttachment
-from .utils import *
 
 
 @require_POST
-def update_sms(request, callback_token, identificator):
+def update_sms(request):
     data = request.POST
-    account = AuthenticationParameters.objects.filter(rand_identificator=identificator).first()
-    if account:
-        password = account.sms_password
-        account_sid = generate_plaint_text_from_secret_data(callback_token, password)
-        if AuthenticationParameters.objects.filter(account_sid=account_sid).exists():
-            sid = data.get("SmsSid")
-            if sid and account_sid:
-                sms = SentSms.objects.filter(sid=sid, account_sid=account_sid).first()
-
-                if sms:
-                    sms.status = data.get("SmsStatus")
-                    sms.save()
-                    return JsonResponse(data={"status": "OK"}, status=200)
-                else:
-                    return JsonResponse(data={"status": "ERROR - SMS NOT FOUND"}, status=402)
-            else:
-                return JsonResponse(data={"status": "ERROR - SID OR ACCOUNT SID MISSING"}, status=402)
+    sid = data.get("SmsSid")
+    if sid:
+        sms = SentSms.objects.filter(sid=sid.first())
+        if sms:
+            sms.status = data.get("SmsStatus")
+            sms.save()
+            return JsonResponse(data={"status": "OK"}, status=200)
         else:
-            return JsonResponse(data={"status": "INVALID AUTHENTICATION TOKEN"}, status=402)
+            return JsonResponse(data={"status": "ERROR - SMS NOT FOUND"}, status=402)
     else:
-        return JsonResponse(data={"status": "INVALID IDENTIFICATOR"}, status=402)
+        return JsonResponse(data={"status": "ERROR - SID IS MISSING"}, status=402)
 
 
 @login_required(login_url="login")
 @require_POST
-def send_sms_mms(request, account_sid, auth_token):
+def send_sms_mms(request):
     user = request.user
     request_data = request.POST
-    auth_params = AuthenticationParameters.objects.filter(user=user, account_sid=request_data.get("account_sid"),
-                                                          auth_token=request_data.get("auth_token")).first()
+    auth_params = AuthenticationParameters.objects.filter(user=user).first()
 
     send_type = request_data.get("send_type")
     if auth_params:
         data = dict()
         try:
+            account_sid = auth_params.account_sid
+            auth_token = auth_params.auth_token
             client = Client(account_sid, auth_token)
-            password = auth_params.sms_password
-            callback_token = generate_secret_data(password, account_sid)
-            identificator = auth_params.rand_identificator
-            callback_url = f"{request.build_absolute_uri()}/{callback_token}/{identificator}"
+            callback_url = f"{request.build_absolute_uri()}/update_sms"
 
             if send_type == 'sms':
                 message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
@@ -68,16 +55,16 @@ def send_sms_mms(request, account_sid, auth_token):
                 message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url,
                                                  media_url=media_url)
-        except Exception:
+        except Exception as e:
             data["status"] = "error"
-            data["message"] = "error occured while sending message"
+            data["message"] = str(e)
             return JsonResponse(data=data, status=402)
         else:
             SentSms.objects.create(
                 user=user,
                 account_sid=message.account_sid,
                 sid=message.sid,
-                from_num=message,
+                from_num=message.from_,
                 to=message.to,
                 body=message.body,
                 status=message.status
@@ -102,12 +89,14 @@ def send_sms_mms(request, account_sid, auth_token):
 @login_required(login_url="url")
 @require_GET
 def dashboard(request):
-    pass
+    return render(request, "dashboard.html")
 
 
 @require_http_methods(['GET', 'POST'])
 def login_view(request):
     if request.method == 'GET':
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse("dashboard"))
         return render(request, 'login_view.html')
     else:
         data = request.POST
@@ -120,3 +109,10 @@ def login_view(request):
         else:
             return render(request, "login_view.html", {"error": "Username or password is incorrect"})
 
+
+def sms(request):
+    return render(request, "sms.html")
+
+
+def mms(request):
+    return render(request, "mms.html")
