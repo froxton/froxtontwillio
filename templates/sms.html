@@ -31,6 +31,7 @@
                         <div class="form-group">
                             <label for="body">SMS Body</label>
                             <textarea class="form-control" name="body" id="body" placeholder="Hello world" rows="5"></textarea>
+                            <p ><span id="charLimit">160</span> / 160</p>
                         </div>
                         <input type="hidden" name="send_type" value="sms">
                         <button class="form-control btn btn-success">Send SMS</button>
@@ -39,4 +40,8 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block scriptblock %}
+
 {% endblock %}

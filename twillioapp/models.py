@@ -8,6 +8,7 @@ class AuthenticationParameters(models.Model):
     account_sid = models.CharField(max_length=256, blank=False, null=False)
     auth_token = models.CharField(max_length=256, blank=False, null=False)
     phone_number = models.CharField(max_length=65, blank=False, null=False)
+    note = models.CharField(max_length=256, blank=True, null=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
 
@@ -26,6 +27,7 @@ class SentSms(models.Model):
     to = models.CharField(max_length=32, blank=False, null=False)
     body = models.CharField(max_length=4096, blank=False, null=False)
     status = models.CharField(max_length=16, blank=False, null=False)
+    have_seen = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
 

@@ -3,22 +3,27 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import auth_login, auth_logout
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods, require_GET
+from django.core import serializers
 from django.http import JsonResponse
 
 from twilio.rest import Client
 
 from .models import AuthenticationParameters, SentSms, MMSAttachment
+import json
 
 
+@csrf_exempt
 @require_POST
 def update_sms(request):
     data = request.POST
     sid = data.get("SmsSid")
     if sid:
-        sms = SentSms.objects.filter(sid=sid.first())
+        sms = SentSms.objects.filter(sid=sid).first()
         if sms:
             sms.status = data.get("SmsStatus")
+            sms.have_seen = False
             sms.save()
             return JsonResponse(data={"status": "OK"}, status=200)
         else:
@@ -41,7 +46,7 @@ def send_sms_mms(request):
             account_sid = auth_params.account_sid
             auth_token = auth_params.auth_token
             client = Client(account_sid, auth_token)
-            callback_url = f"{request.build_absolute_uri()}/update_sms"
+            callback_url = f"{request.build_absolute_uri()}update_sms"
 
             if send_type == 'sms':
                 message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
@@ -51,7 +56,7 @@ def send_sms_mms(request):
                 media_url = ''
                 if file:
                     attach = MMSAttachment.objects.create(file=file)
-                    media_url = attach.file.url
+                    media_url = f"{request.build_absolute_uri('/')[:-1]}/{attach.file.url}"
                 message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url,
                                                  media_url=media_url)
@@ -67,7 +72,8 @@ def send_sms_mms(request):
                 from_num=message.from_,
                 to=message.to,
                 body=message.body,
-                status=message.status
+                status=message.status,
+                have_seen=True
             )
 
             data["to"] = request_data.get("to")
@@ -108,6 +114,13 @@ def login_view(request):
             return HttpResponseRedirect(reverse("dashboard"))
         else:
             return render(request, "login_view.html", {"error": "Username or password is incorrect"})
+
+
+@require_GET
+def get_notifications(request):
+    sms_notifications = SentSms.objects.filter(user=request.user).order_by("-update_date")
+    data = json.loads(serializers.serialize("json", sms_notifications, fields=("status", "update_date", "from_num", "to", "have_seen")))
+    return JsonResponse(data, status=200, safe=False)
 
 
 def sms(request):

@@ -1310,7 +1310,7 @@ Top Header
 .notification-list .list-group-item.active {
     z-index: 2;
     color: #3d405c;
-    background-color: #f7f7fb;
+    background-color: rgba(155, 249, 249, 0.26);
     border-color: #e1e1e7;
 }
 
@@ -1350,7 +1350,6 @@ Top Header
 }
 
 .notification-list-user-block {
-    padding-left: 50px;
     font-size: 14px;
     line-height: 21px;
 }
