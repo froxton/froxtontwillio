@@ -61,9 +61,10 @@ def send_sms_mms(request):
                                                  to=request_data.get("to"), status_callback=callback_url,
                                                  media_url=media_url)
         except Exception as e:
-            data["status"] = "error"
-            data["message"] = str(e)
-            return JsonResponse(data=data, status=402)
+            if send_type == "sms":
+                return render(request, 'sms.html', {"error": str(e)})
+            else:
+                return render(request, 'mms.html', {"error": str(e)})
         else:
             SentSms.objects.create(
                 user=user,
@@ -76,20 +77,15 @@ def send_sms_mms(request):
                 have_seen=True
             )
 
-            data["to"] = request_data.get("to")
-            data["from"] = auth_params.phone_number
-            data["body"] = request_data.get("body")
-            data["date_created"] = message.date_created
-            data["date_sent"] = message.date_sent
-            data["sid"] = message.sid
-
-            return JsonResponse(data=data, status=200)
+            if send_type == "sms":
+                return render(request, 'sms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
+            else:
+                return render(request, 'mms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
     else:
-        data = dict()
-        data['status'] = 402
-        data['status'] = "error"
-        data['message'] = "Invalid authentication parameters for user"
-        return JsonResponse(data=data, status=402)
+        if send_type == "sms":
+            return render(request, 'sms.html', {"error": f"Invalid authentication parameters"})
+        else:
+            return render(request, 'mms.html', {"success": f"Invalid authentication parameters"})
 
 
 @login_required(login_url="url")
@@ -119,7 +115,9 @@ def login_view(request):
 @require_GET
 def get_notifications(request):
     sms_notifications = SentSms.objects.filter(user=request.user).order_by("-update_date")
-    data = json.loads(serializers.serialize("json", sms_notifications, fields=("status", "update_date", "from_num", "to", "have_seen")))
+    data = json.loads(serializers.serialize("json", sms_notifications,
+                                            fields=("status", "update_date", "from_num", "to", "have_seen", "sid"),
+                                            use_natural_primary_keys=True))
     return JsonResponse(data, status=200, safe=False)
 
 

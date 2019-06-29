@@ -22,6 +22,17 @@
                         </div>
                     </div>
                 <div class="ecommerce-widget">
+                    {% if error %}
+                        <div class="isa_error">
+                           <i class="fa fa-times-circle"></i>
+                           {{ error }}
+                        </div>
+                    {% elif success %}
+                        <div class="isa_success">
+                             <i class="fa fa-check"></i>
+                             {{ success }}
+                        </div>
+                    {% endif %}
                     <form action="{% url 'send_mms' %}" method="POST" style="width: 50%" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="form-group">

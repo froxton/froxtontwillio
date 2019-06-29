@@ -22,6 +22,17 @@
                         </div>
                     </div>
                 <div class="ecommerce-widget">
+                    {% if error %}
+                        <div class="isa_error">
+                           <i class="fa fa-times-circle"></i>
+                           {{ error }}
+                        </div>
+                    {% elif success %}
+                        <div class="isa_success">
+                             <i class="fa fa-check"></i>
+                             {{ success }}
+                        </div>
+                    {% endif %}
                     <form action="{% url 'send_sms' %}" method="POST" style="width: 50%">
                         {% csrf_token %}
                         <div class="form-group">
@@ -31,7 +42,7 @@
                         <div class="form-group">
                             <label for="body">SMS Body</label>
                             <textarea class="form-control" name="body" id="body" placeholder="Hello world" rows="5"></textarea>
-                            <p ><span id="charLimit">160</span> / 160</p>
+                            <p ><span id="charLimit">160</span> / <span id="charMax">160</span></p>
                         </div>
                         <input type="hidden" name="send_type" value="sms">
                         <button class="form-control btn btn-success">Send SMS</button>
@@ -43,5 +54,37 @@
 {% endblock %}
 
 {% block scriptblock %}
+    <script>
+        var alerted = false;
+        var maxSize = 160;
 
+        function isGsmAlpha(letter){
+            gsm = "@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞ^{}\[~]|€ÆæßÉ!\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+            return gsm.indexOf(letter) !== -1;
+        }
+
+        $("#body").keypress(function (e) {
+            if (!isGsmAlpha(e.key)){
+                if (!alerted)
+                {
+                    alert("Warning, you have entered Non-GSM character, 1 sms body size will be 67 characters long.");
+                    $("#charMax").text("67");
+                    alerted = true;
+                    maxSize = 67;
+                }
+            }
+            let size = $("#body").val().length % maxSize;
+            if(parseInt(size) === 0){ maxSize = 160; $("#charMax").text("160"); }
+            $("#charLimit").text(maxSize-parseInt(size));
+        });
+
+        $("#body").on('keydown', function() {
+            let key = event.keyCode || event.charCode;
+            let size = $("#body").val().length;
+            if( key == 8 || key == 46 ){
+                $("#charLimit").text(maxSize-parseInt(size));
+            }
+            if(parseInt(size) === 0){ maxSize = 160; $("#charMax").text("160"); }
+          });
+    </script>
 {% endblock %}

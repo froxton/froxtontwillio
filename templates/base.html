@@ -39,7 +39,7 @@
                     <li class="nav-item dropdown notification">
                         <a class="nav-link nav-icons" href="#" id="navbarDropdownMenuLink1" data-toggle="dropdown"
                            aria-haspopup="true" aria-expanded="false" id><i class="fas fa-fw fa-bell"></i>
-                            <span  id="newMessagesAvailable"></span></a>
+                            <span id="newMessagesAvailable"></span></a>
                         <ul class="dropdown-menu dropdown-menu-right notification-dropdown">
                             <li>
                                 <div class="notification-title"> Notification</div>
@@ -129,48 +129,45 @@
     </div>
 </div>
 </body>
-    {% block scriptblock %}
-        {% endblock %}
+
 <script src="{% static 'assets/vendor/jquery/jquery-3.3.1.min.js' %}"></script>
 <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.js' %}"></script>
 <script src="{% static 'assets/vendor/slimscroll/jquery.slimscroll.js' %}"></script>
 <script src="{% static 'assets/libs/js/main-js.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/chartist-bundle/chartist.min.js' %}"></script>
+{#<script src="{% static 'assets/vendor/charts/chartist-bundle/chartist.min.js' %}"></script>#}
 <script src="{% static 'assets/vendor/charts/sparkline/jquery.sparkline.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/morris-bundle/raphael.min.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/morris-bundle/morris.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/c3charts/c3.min.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/c3charts/d3-5.4.0.min.js' %}"></script>
-<script src="{% static 'assets/vendor/charts/c3charts/C3chartjs.js' %}"></script>
-<script src="{% static 'assets/libs/js/dashboard-ecommerce.js' %}"></script>
+{#<script src="{% static 'assets/vendor/charts/morris-bundle/raphael.min.js' %}"></script>#}
+{#<script src="{% static 'assets/vendor/charts/morris-bundle/morris.js' %}"></script>#}
+{#<script src="{% static 'assets/vendor/charts/c3charts/c3.min.js' %}"></script>#}
+{#<script src="{% static 'assets/vendor/charts/c3charts/d3-5.4.0.min.js' %}"></script>#}
+{#<script src="{% static 'assets/vendor/charts/c3charts/C3chartjs.js' %}"></script>#}
+{#<script src="{% static 'assets/libs/js/dashboard-ecommerce.js' %}"></script>#}
 
-  <script>
-
-        function getNotifications() {
-            $.get("{% url 'get_notifications' %}", function (data, status) {
-                if(data.length > 0){
-                    if(!$("#newMessagesAvailable").hasClass("indicator")) $("#newMessagesAvailable").addClass("indicator");
-                    $("#notifications").empty();
-                    for (let j = 0; j < data.length; j++) {
-                        let notificationData = data[j].fields;
-                        let active = notificationData.have_seen ? "active" : "";
-                        console.log(active);
-                        $("#notifications").append("<a href=\"#\" class=\"list-group-item list-group-item-action " + active + "\"><div class=\"notification-info\">\n" +
-                            "                                                    <div class=\"notification-list-user-block\"><span class=\"notification-list-user-name\">Message status from: " + notificationData.from_num + " To: " + notificationData.to + " has been changed to " + notificationData.status + "\n" +
-                            "                                                        <div class=\"notification-date\">" + notificationData.update_date + "</div>\n" +
-                            "                                                    </div>\n" +
-                            "                                                </div></a>")
-                    }
+{% block scriptblock %}
+{% endblock %}
+<script>
+    function getNotifications() {
+        $.get("{% url 'get_notifications' %}", function (data, status) {
+            if (data.length > 0) {
+                if (!$("#newMessagesAvailable").hasClass("indicator")) $("#newMessagesAvailable").addClass("indicator");
+                $("#notifications").empty();
+                for (let j = 0; j < data.length; j++) {
+                    let notificationData = data[j].fields;
+                    let active = notificationData.have_seen ? "active" : "";
+                    $("#notifications").append("<a href=\"#\" class=\"list-group-item list-group-item-action " + active + "\"><div class=\"notification-info\">\n" +
+                        "                                                    <div class=\"notification-list-user-block\"><span class=\"notification-list-user-name\">SID: " + data[j].pk + " Message status from: " + notificationData.from_num + " To: " + notificationData.to + " has been changed to " + notificationData.status + "\n" +
+                        "                                                        <div class=\"notification-date\">" + notificationData.update_date + "</div>\n" +
+                        "                                                    </div>\n" +
+                        "                                                </div></a>")
                 }
-                else{
-                    $("#newMessagesAvailable").removeClass("indicator");
-                }
+            } else {
+                $("#newMessagesAvailable").removeClass("indicator");
+            }
+        })
+    }
 
-            })
-        }
-
-        getNotifications();
-        setInterval(getNotifications, 6000)
-    </script>
+    getNotifications();
+    setInterval(getNotifications, 6000)
+</script>
 
 </html>
