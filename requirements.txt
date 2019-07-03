@@ -1,3 +1,2 @@
 twilio
-simple-crypt
 django

@@ -41,7 +41,6 @@ def send_sms_mms(request):
 
     send_type = request_data.get("send_type")
     if auth_params:
-        data = dict()
         try:
             account_sid = auth_params.account_sid
             auth_token = auth_params.auth_token
@@ -56,7 +55,7 @@ def send_sms_mms(request):
                 media_url = ''
                 if file:
                     attach = MMSAttachment.objects.create(file=file)
-                    media_url = f"{request.build_absolute_uri('/')[:-1]}/{attach.file.url}"
+                    media_url = f"{request.build_absolute_uri('/')[:-1]}{attach.file.url}"
                 message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url,
                                                  media_url=media_url)
@@ -66,7 +65,7 @@ def send_sms_mms(request):
             else:
                 return render(request, 'mms.html', {"error": str(e)})
         else:
-            SentSms.objects.create(
+            smsSent = SentSms.objects.create(
                 user=user,
                 account_sid=message.account_sid,
                 sid=message.sid,
@@ -78,12 +77,12 @@ def send_sms_mms(request):
             )
 
             if send_type == "sms":
-                return render(request, 'sms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
+                return HttpResponseRedirect(reverse("sms_success", args=(smsSent.sid, )))
             else:
                 return render(request, 'mms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
     else:
         if send_type == "sms":
-            return render(request, 'sms.html', {"error": f"Invalid authentication parameters"})
+            return HttpResponseRedirect(reverse("sms_failed"))
         else:
             return render(request, 'mms.html', {"success": f"Invalid authentication parameters"})
 
@@ -92,6 +91,11 @@ def send_sms_mms(request):
 @require_GET
 def dashboard(request):
     return render(request, "dashboard.html")
+
+
+def logout_view(request):
+    auth_logout(request)
+    return HttpResponseRedirect("/")
 
 
 @require_http_methods(['GET', 'POST'])
@@ -121,9 +125,19 @@ def get_notifications(request):
     return JsonResponse(data, status=200, safe=False)
 
 
-def sms(request):
-    return render(request, "sms.html")
+def sms(request, sid=None):
+    if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
+        return render(request, "sms.html", {"error": f"Invalid authentication parameters"})
+    elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
+        return render(request, "sms.html", {"success": f"Your message has been queued with SID: {sid}"})
+    else:
+        return render(request, "sms.html")
 
 
-def mms(request):
-    return render(request, "mms.html")
+def mms(request, sid=None):
+    if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
+        return render(request, "mms.html", {"error": f"Invalid authentication parameters"})
+    elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
+        return render(request, "mms.html", {"success": f"Your message has been queued with SID: {sid}"})
+    else:
+        return render(request, "mms.html")

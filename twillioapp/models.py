@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from .utils import random_password_generator
 
 
 class AuthenticationParameters(models.Model):
