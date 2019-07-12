@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
+from django.core.signing import TimestampSigner
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, reverse
@@ -13,6 +14,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods, require_GET
 from django.core import serializers
+from django.core import signing
 from django.http import JsonResponse
 
 from twilio.rest import Client
@@ -87,7 +89,7 @@ def send_sms_mms(request):
             )
 
             if send_type == "sms":
-                return HttpResponseRedirect(reverse("sms_success", args=(smsSent.sid, )))
+                return HttpResponseRedirect(reverse("sms_success", args=(smsSent.sid,)))
             else:
                 return render(request, 'mms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
     else:
@@ -162,14 +164,18 @@ def reset_password_proceed(request):
     context = dict()
     user = user.first()
     account_activation_token = TokenGenerator()
+    timestamp_signer = TimestampSigner()
     current_site = get_current_site(request)
-    mail_subject = 'Activate your blog account.'
+    secret_data = {"user_id": user.id, "reset_access": True, "secret_word": "I Love Georgia"}
+    signed_secret_data = timestamp_signer.sign(signing.dumps(secret_data)).replace(":", "-")
+    mail_subject = 'Reset your Froxton account password.'
     message = render_to_string('acc_active_email.html', {
         'reset_check': True,
         'user': user,
         'domain': current_site.domain,
         'uid': urlsafe_base64_encode(force_bytes(user.pk)),
         'token': account_activation_token.make_token(user),
+        "signed_secret_data": signed_secret_data
     })
     to_email = user.email or email
     email = EmailMessage(
@@ -177,12 +183,12 @@ def reset_password_proceed(request):
     )
     email.send()
     email_domain = to_email.split("@")
-    context["success"] = f"We sent reset password link in you email <a href='http://{email_domain[-1]}'>{to_email}</a>"
+    context["success"] = f"We sent reset password link in you email <a href='http://{email_domain[-1]}'>{to_email}</a><br><a href='/'>Back on page</a>"
     return render(request, "registration_view.html", context)
 
 
 @require_http_methods(['GET', 'POST'])
-def reset_password(request,  uidb64, token):
+def reset_password(request, uidb64, token, query_payload):
     account_activation_token = TokenGenerator()
     try:
         uid = force_text(urlsafe_base64_decode(uidb64))
@@ -190,21 +196,38 @@ def reset_password(request,  uidb64, token):
     except(TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
     if user is not None and account_activation_token.check_token(user, token):
-        if request.method == 'GET':
-            return render(request, "reset_password_page.html", {"uid": uidb64, "token": token})
+        signer = TimestampSigner()
+        try:
+            query_payload = query_payload.replace("-", ":")
+            data = signer.unsign(query_payload, max_age=20)
+        except Exception:
+            return HttpResponse('Invalid activation payload')
         else:
-            data = request.POST
-            password1 = data.get("password1")
-            password2 = data.get("password2")
-            errors = PasswordValidator(password1, password2).get_errors()
+            secret_data = signing.loads(data)
+            uid = secret_data.get("user_id")
+            reset_access = secret_data.get("reset_access")
+            sec_word = secret_data.get("secret_word")
 
-            if len(errors) > 0:
-                return render(request, "reset_password_page.html", {"errors": errors, "uid": uidb64, "token": token})
+            if uid == user.id and reset_access is True and sec_word == "I Love Georgia":
+                if request.method == 'GET':
+                    query_payload = query_payload.replace(":", "-")
+                    return render(request, "reset_password_page.html", {"uid": uidb64, "token": token, "query_payl": query_payload})
+                else:
+                    data = request.POST
+                    password1 = data.get("password1")
+                    password2 = data.get("password2")
+                    errors = PasswordValidator(password1, password2).get_errors()
 
-            user.set_password(password1)
-            user.save()
-            auth_login(request, user)
-            return HttpResponseRedirect("/")
+                    if len(errors) > 0:
+                        return render(request, "reset_password_page.html",
+                                      {"errors": errors, "uid": uidb64, "token": token, "query_payl": query_payload})
+
+                    user.set_password(password1)
+                    user.save()
+                    auth_login(request, user)
+                    return HttpResponseRedirect("/")
+            else:
+                return HttpResponse('Activation link is invalid!')
     else:
         return HttpResponse('Activation link is invalid!')
 
@@ -252,7 +275,7 @@ def sign_up_user(request):
 
     account_activation_token = TokenGenerator()
     current_site = get_current_site(request)
-    mail_subject = 'Activate your blog account.'
+    mail_subject = 'Activate your Froxton account.'
     message = render_to_string('acc_active_email.html', {
         'user': user,
         'domain': current_site.domain,
@@ -300,6 +323,9 @@ def sms(request, sid=None):
     elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
         return render(request, "sms.html", {"success": f"Your message has been queued with SID: {sid}"})
     else:
+        auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
+        client = Client(auth_params.account_sid, auth_params.auth_token)
+        phone_numbers = client.incoming_phone_numbers.list()
         return render(request, "sms.html")
 
 

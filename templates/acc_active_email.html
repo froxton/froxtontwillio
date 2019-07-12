@@ -1,5 +1,5 @@
 {% autoescape off %}
     Hi {{ user.username }},
     Please click on the link to {% if reset_check %}reset your password{% else %}confirm your registration,{% endif %}
-    http://{{ domain }}{% if reset_check %}{% url 'reset_password' uidb64=uid token=token %}{% else %}{% url 'activate' uidb64=uid token=token %}{% endif %}
+    http://{{ domain }}{% if reset_check %}{% url 'reset_password_process' uidb64=uid token=token query_payload=signed_secret_data %}{% else %}{% url 'activate' uidb64=uid token=token %}{% endif %}
 {% endautoescape %}
