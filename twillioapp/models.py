@@ -13,6 +13,19 @@ class UserAdditionalData(models.Model):
         db_table = "twilio_auth_user_ext_data"
 
 
+class Contacts(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    contact_name = models.CharField(max_length=256, blank=False, null=False)
+    contact_number = models.CharField(max_length=32, blank=False, null=False)
+    contact_country = models.CharField(max_length=32, blank=False, null=False)
+
+    def __str__(self):
+        return f"{self.contact_name} - {self.contact_number}"
+
+    class Meta:
+        db_table = 'user_contacts'
+
+
 class AuthenticationParameters(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     account_sid = models.CharField(max_length=256, blank=False, null=False)

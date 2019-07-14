@@ -7,41 +7,78 @@
         <div class="dashboard-ecommerce">
             <div class="container-fluid dashboard-content">
                 <div class="row">
-                        <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                            <div class="page-header">
-                                <h2 class="pageheader-title">Send MMS</h2>
-                                <div class="page-breadcrumb">
-                                    <nav aria-label="breadcrumb">
-                                        <ol class="breadcrumb">
-                                            <li class="breadcrumb-item"><a href="#" class="breadcrumb-link">Dashboard</a></li>
-                                            <li class="breadcrumb-item active" aria-current="page">MMS</li>
-                                        </ol>
-                                    </nav>
-                                </div>
+                    <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                        <div class="page-header">
+                            <h2 class="pageheader-title">Send MMS</h2>
+                            <div class="page-breadcrumb">
+                                <nav aria-label="breadcrumb">
+                                    <ol class="breadcrumb">
+                                        <li class="breadcrumb-item"><a href="#" class="breadcrumb-link">Dashboard</a>
+                                        </li>
+                                        <li class="breadcrumb-item active" aria-current="page">MMS</li>
+                                    </ol>
+                                </nav>
                             </div>
                         </div>
                     </div>
+                </div>
                 <div class="ecommerce-widget">
                     {% if error %}
                         <div class="isa_error">
-                           <i class="fa fa-times-circle"></i>
-                           {{ error }}
+                            <i class="fa fa-times-circle"></i>
+                            {{ error }}
                         </div>
                     {% elif success %}
                         <div class="isa_success">
-                             <i class="fa fa-check"></i>
-                             {{ success }}
+                            <i class="fa fa-check"></i>
+                            {{ success }}
                         </div>
                     {% endif %}
                     <form action="{% url 'send_mms' %}" method="POST" style="width: 50%" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="form-group">
+                            <label>Choose from number</label>
+                            <input class="form-control" type="text" id="phoneNumberFilter" placeholder="+123456789"
+                                   style="width: 50%">
+                            <select class="form-control" style="width: 50%" size="5" id="phone_numbers">
+                                {% for phone_number in phone_numbers %}
+                                    <option value="{{ phone_number }}">{{ phone_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="receiver">From</label>
+                            <input class="form-control" name="from" id="from"
+                                   placeholder="Alphanumeric name or phone number" style="width: 50%!important;">
+                        </div>
+                        <div class="form-group">
+                            <label>Choose to number</label>
+                            <input class="form-control" type="text" id="contactsFilter"
+                                   placeholder="Beka Naveriani or +123456789"
+                                   style="width: 50%">
+                            <select class="form-control" style="width: 50%" size="5" id="contact_numbers">
+                                {% for contact in contacts %}
+                                    <option value="{{ contact.contact_number }}">
+                                        {{ contact.contact_name }} - {{ contact.contact_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="receiver">To</label>
-                            <input type="text" class="form-control" name="to" id="receiver" placeholder="+995 xxx xxx xxx">
+                            <div class="form-inline">
+                                <input class="form-control" name="to" id="receiver" placeholder="+995 xxx xxx xxx"
+                                       style="width: 50%">
+                                <input type="button" class="btn btn-success" value="Add contacts"
+                                       style="display: none; margin-left: 10px;"
+                                       id="addContacts">
+                            </div>
+                            <input type="text" class="form-control" style="display: none; margin-top: 5px;"
+                                   id="contactName" placeholder="Beka Naveriani">
                         </div>
                         <div class="form-group">
                             <label for="body">MMS Body</label>
-                            <textarea class="form-control" name="body" id="body" placeholder="Hello world" rows="5"></textarea>
+                            <textarea class="form-control" name="body" id="body" placeholder="Hello world"
+                                      rows="5"></textarea>
                         </div>
                         <div class="form-group">
                             <label for="mms_attachment">MMS Attachment</label>
@@ -55,4 +92,75 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block scriptblock %}
+    <script>
+        $("#addContacts").on('click', function () {
+            let phone_number = $('#receiver').val();
+            let contact_name = $('#contactName').val();
+
+            if (contact_name.length < 5) {
+                alert("Contact name length must be more then 5 symbols");
+                return false;
+            }
+            let data = {
+                contactNumber: phone_number,
+                contactName: contact_name
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "{% url 'add_contact' %}",
+                data: data,
+                success: function (data) {
+                    if (data.status === 'success') {
+                        $('#contact_numbers').append(new Option(`${contact_name} - ${phone_number}`));
+                    } else {
+                        alert(data.message);
+                    }
+                },
+            });
+        });
+
+        $('#receiver').on('input', function () {
+            if ($(this).val().length > 0) {
+                $('#addContacts').show();
+                $('#contactName').show();
+            } else {
+                $('#addContacts').hide();
+                $('#contactName').hide();
+            }
+        });
+
+        $('#phone_numbers').on('change', function () {
+            $('#from').val($(this).val());
+        });
+
+        $('#contact_numbers').on('change', function () {
+            $('#receiver').val($(this).val());
+        })
+
+        $('#phoneNumberFilter').on('input', function () {
+            let filterVal = $(this).val();
+            $('#phone_numbers  > option').each(function () {
+                if (!($(this).val().includes(filterVal))) {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                }
+            })
+        });
+
+        $('#contactsFilter').on('input', function () {
+            let filterVal = $(this).val();
+            $('#contact_numbers  > option').each(function () {
+                if (!($(this).text().includes(filterVal))) {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                }
+            })
+        })
+    </script>
 {% endblock %}

@@ -21,5 +21,6 @@ urlpatterns = [
     path("reset_password/result/", reset_password_proceed, name="reset_password_proceed"),
     path("reset_password/<slug:uidb64>/<slug:token>/<slug:query_payload>", reset_password, name="reset_password_process"),
     path("activate/<slug:uidb64>/<slug:token>", activate, name="activate"),
-    path("send_activation/<int:uid>", send_activation, name="send_activation")
+    path("send_activation/<int:uid>", send_activation, name="send_activation"),
+    path("add_contact", add_contact, name="add_contact")
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

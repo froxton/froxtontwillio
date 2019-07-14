@@ -22,7 +22,7 @@ from twilio.rest import Client
 
 from twillioapp.forms import RegistrationForm
 from twillioapp.utils import PasswordValidator, TokenGenerator, ResetPasswordTokenGenerator, user_activation
-from .models import AuthenticationParameters, SentSms, MMSAttachment, UserAdditionalData
+from .models import AuthenticationParameters, SentSms, MMSAttachment, UserAdditionalData, Contacts
 import json
 
 
@@ -61,7 +61,8 @@ def send_sms_mms(request):
             callback_url = f"{request_domain_url}/update_sms"
 
             if send_type == 'sms':
-                message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
+                from_num = request_data.get("from")
+                message = client.messages.create(from_=from_num, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url)
             else:
                 file = request.FILES['mms_attachment']
@@ -355,6 +356,30 @@ def send_activation(request, uid):
         return JsonResponse(data={'status': 'success', 'redirect_email': f"<h5 style=\"color: #199c61;\" id='activation'>Activation link has been sent to <a href='http://{email_domain[-1]}'>{user.email}</a></h5>"})
 
 
+@require_POST
+@csrf_exempt
+def add_contact(request):
+    data = request.POST
+    user = request.user
+    user_contacts = Contacts.objects.filter(user=user)
+
+    contact_name = data.get("contactName")
+    contact_number = data.get("contactNumber")
+
+    number_exists = user_contacts.filter(contact_number__iexact=contact_number)
+
+    if number_exists.exists():
+        return JsonResponse(data={"status": "error", "message": f"This phone number is already saved as {number_exists.first().contact_name}"})
+
+    Contacts.objects.create(
+        user=user,
+        contact_name=contact_name,
+        contact_number=contact_number,
+        contact_country='GE'
+    )
+    return JsonResponse(data={"status": "success"})
+
+
 @require_GET
 def get_notifications(request):
     sms_notifications = SentSms.objects.filter(user=request.user).order_by("-update_date")
@@ -372,12 +397,16 @@ def sms(request, sid=None):
     else:
         auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
         client = Client(auth_params.account_sid, auth_params.auth_token)
-        phone_numbers = None
+        phone_numbers = list()
+        contacts = Contacts.objects.filter(user=request.user)
         try:
-            phone_numbers = client.incoming_phone_numbers.list()
+            phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
         except Exception:
             pass
-        return render(request, "sms.html")
+        context = dict()
+        context['phone_numbers'] = phone_numbers
+        context['contacts'] = contacts
+        return render(request, "sms.html", context)
 
 
 def mms(request, sid=None):
@@ -386,4 +415,15 @@ def mms(request, sid=None):
     elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
         return render(request, "mms.html", {"success": f"Your message has been queued with SID: {sid}"})
     else:
-        return render(request, "mms.html")
+        auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
+        client = Client(auth_params.account_sid, auth_params.auth_token)
+        phone_numbers = list()
+        contacts = Contacts.objects.filter(user=request.user)
+        try:
+            phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
+        except Exception:
+            pass
+        context = dict()
+        context['phone_numbers'] = phone_numbers
+        context['contacts'] = contacts
+        return render(request, "mms.html", context)
