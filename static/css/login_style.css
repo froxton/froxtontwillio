@@ -10,13 +10,22 @@ height: 100%;
 font-family: 'Numans', sans-serif;
 }
 
+#resend_activation{
+    color: #0072f0;
+}
+
+#resend_activation:hover{
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .container{
 height: 100%;
 align-content: center;
 }
 
 .card{
-height: 370px;
+height: auto;
 margin-top: auto;
 margin-bottom: auto;
 width: 400px;

@@ -73,6 +73,13 @@
                             <a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-power-off mr-2"></i>Logout</a>
                         </div>
                     </li>
+                {% if request.user.is_superuser %}
+                    <li style="padding: 20px;">
+                        <div class="admin-button">
+                            <a href="/admin">ADMIN</a>
+                        </div>
+                    </li>
+                {% endif %}
                 </ul>
             </div>
         </nav>

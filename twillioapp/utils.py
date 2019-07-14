@@ -1,6 +1,14 @@
+from django.contrib.sites.shortcuts import get_current_site
+from django.core import signing
 from django.core.exceptions import ValidationError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import EmailMessage
+from django.core.signing import TimestampSigner
+from django.template.loader import render_to_string
 from django.utils import six
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+
 
 class PasswordValidator:
 
@@ -56,3 +64,22 @@ class ResetPasswordTokenGenerator(PasswordResetTokenGenerator):
             six.text_type(user.pk) + six.text_type(timestamp) +
             six.text_type(user.email)
         )
+
+
+def user_activation(request, user, email):
+    account_activation_token = TokenGenerator()
+    current_site = get_current_site(request)
+    mail_subject = 'Activate your Froxton account.'
+    message = render_to_string('acc_active_email.html', {
+        'user': user,
+        'domain': current_site.domain,
+        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+        'token': account_activation_token.make_token(user),
+    })
+    to_email = email
+    email = EmailMessage(
+        mail_subject, message, to=[to_email]
+    )
+    email.send()
+    email_domain = to_email.split("@")
+    return email_domain
