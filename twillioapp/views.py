@@ -53,15 +53,15 @@ def send_sms_mms(request):
 
     send_type = request_data.get("send_type")
     if auth_params:
+        account_sid = auth_params.account_sid
+        auth_token = auth_params.auth_token
+        client = Client(account_sid, auth_token)
         try:
             request_domain_url = request.build_absolute_uri('/')[:-1]
-            account_sid = auth_params.account_sid
-            auth_token = auth_params.auth_token
-            client = Client(account_sid, auth_token)
             callback_url = f"{request_domain_url}/update_sms"
 
             if send_type == 'sms':
-                from_num = request_data.get("from")
+                from_num = request_data.get("from") or auth_params.phone_number
                 message = client.messages.create(from_=from_num, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url)
             else:
@@ -70,14 +70,25 @@ def send_sms_mms(request):
                 if file:
                     attach = MMSAttachment.objects.create(file=file)
                     media_url = f"{request_domain_url}/{attach.file.url}"
-                message = client.messages.create(from_=auth_params.phone_number, body=request_data.get("body"),
+                from_num = request_data.get("from") or auth_params.phone_number
+                message = client.messages.create(from_=from_num, body=request_data.get("body"),
                                                  to=request_data.get("to"), status_callback=callback_url,
                                                  media_url=media_url)
         except Exception as e:
+            phone_numbers = list()
+            contacts = Contacts.objects.filter(user=request.user)
+            try:
+                phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
+            except Exception:
+                pass
+            context = dict()
+            context['phone_numbers'] = phone_numbers
+            context['contacts'] = contacts
+            context['error'] = str(e)
             if send_type == "sms":
-                return render(request, 'sms.html', {"error": str(e)})
+                return render(request, 'sms.html', context)
             else:
-                return render(request, 'mms.html', {"error": str(e)})
+                return render(request, 'mms.html', context)
         else:
             smsSent = SentSms.objects.create(
                 user=user,
@@ -93,7 +104,7 @@ def send_sms_mms(request):
             if send_type == "sms":
                 return HttpResponseRedirect(reverse("sms_success", args=(smsSent.sid,)))
             else:
-                return render(request, 'mms.html', {"success": f"Your message has been queued with SID: {message.sid}"})
+                return HttpResponseRedirect(reverse("mms_success", args=(smsSent.sid,)))
     else:
         if send_type == "sms":
             return HttpResponseRedirect(reverse("sms_failed"))
@@ -390,40 +401,44 @@ def get_notifications(request):
 
 
 def sms(request, sid=None):
+    auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
+    client = Client(auth_params.account_sid, auth_params.auth_token)
+    phone_numbers = list()
+    contacts = Contacts.objects.filter(user=request.user)
+    try:
+        phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
+    except Exception:
+        pass
+    context = dict()
+    context['phone_numbers'] = phone_numbers
+    context['contacts'] = contacts
     if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
-        return render(request, "sms.html", {"error": f"Invalid authentication parameters"})
+        context['error'] = "Invalid authentication parameters"
+        return render(request, "sms.html", context)
     elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
-        return render(request, "sms.html", {"success": f"Your message has been queued with SID: {sid}"})
+        context['success'] = f"Your message has been queued with SID: {sid}"
+        return render(request, "sms.html", context)
     else:
-        auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
-        client = Client(auth_params.account_sid, auth_params.auth_token)
-        phone_numbers = list()
-        contacts = Contacts.objects.filter(user=request.user)
-        try:
-            phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
-        except Exception:
-            pass
-        context = dict()
-        context['phone_numbers'] = phone_numbers
-        context['contacts'] = contacts
         return render(request, "sms.html", context)
 
 
 def mms(request, sid=None):
+    auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
+    client = Client(auth_params.account_sid, auth_params.auth_token)
+    phone_numbers = list()
+    contacts = Contacts.objects.filter(user=request.user)
+    try:
+        phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
+    except Exception:
+        pass
+    context = dict()
+    context['phone_numbers'] = phone_numbers
+    context['contacts'] = contacts
     if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
-        return render(request, "mms.html", {"error": f"Invalid authentication parameters"})
+        context['error'] = "Invalid authentication parameters"
+        return render(request, "mms.html", context)
     elif len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "success" and sid:
-        return render(request, "mms.html", {"success": f"Your message has been queued with SID: {sid}"})
+        context['success'] = f"Your message has been queued with SID: {sid}"
+        return render(request, "mms.html", context)
     else:
-        auth_params = AuthenticationParameters.objects.filter(user=request.user).first()
-        client = Client(auth_params.account_sid, auth_params.auth_token)
-        phone_numbers = list()
-        contacts = Contacts.objects.filter(user=request.user)
-        try:
-            phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
-        except Exception:
-            pass
-        context = dict()
-        context['phone_numbers'] = phone_numbers
-        context['contacts'] = contacts
         return render(request, "mms.html", context)
