@@ -8,6 +8,9 @@ from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.conf import settings
+import requests
+import bs4
 
 
 class PasswordValidator:
@@ -83,3 +86,6 @@ def user_activation(request, user, email):
     email.send()
     email_domain = to_email.split("@")
     return email_domain
+
+
+

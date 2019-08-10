@@ -73,13 +73,13 @@
                             <a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-power-off mr-2"></i>Logout</a>
                         </div>
                     </li>
-                {% if request.user.is_superuser %}
-                    <li style="padding: 20px;">
-                        <div class="admin-button">
-                            <a href="/admin">ADMIN</a>
-                        </div>
-                    </li>
-                {% endif %}
+                    {% if request.user.is_superuser %}
+                        <li style="padding: 20px;">
+                            <div class="admin-button">
+                                <a href="/admin">ADMIN</a>
+                            </div>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </nav>
@@ -100,15 +100,25 @@
                         <li class="nav-item ">
                             <a class="nav-link active" href="#" data-toggle="collapse" aria-expanded="false"
                                data-target="#submenu-1" aria-controls="submenu-1"><i
-                                    class="fa fa-fw fa-user-circle"></i>SMS / MMS <span
+                                    class="fa fa-fw fa-user-circle"></i>SMS<span
                                     class="badge badge-success">6</span></a>
                             <div id="submenu-1" class="collapse submenu" style="">
                                 <ul class="nav flex-column">
                                     <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'sms' %}">SMS</a>
+                                        <a class="nav-link" href="{% url 'sms' %}">Send SMS</a>
                                     </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="nav-item ">
+                            <a class="nav-link active" href="#" data-toggle="collapse" aria-expanded="false"
+                               data-target="#submenu-2" aria-controls="submenu-1"><i
+                                    class="fa fa-fw fa-user-circle"></i>MMS<span
+                                    class="badge badge-success">6</span></a>
+                            <div id="submenu-2" class="collapse submenu" style="">
+                                <ul class="nav flex-column">
                                     <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'mms' %}">MMS</a>
+                                        <a class="nav-link" href="{% url 'mms' %}">Send MMS</a>
                                     </li>
                                 </ul>
                             </div>

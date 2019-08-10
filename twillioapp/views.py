@@ -21,7 +21,8 @@ from django.http import JsonResponse
 from twilio.rest import Client
 
 from twillioapp.forms import RegistrationForm
-from twillioapp.utils import PasswordValidator, TokenGenerator, ResetPasswordTokenGenerator, user_activation
+from twillioapp.utils import PasswordValidator, TokenGenerator, ResetPasswordTokenGenerator, user_activation, \
+    get_alphanumeric_countries
 from .models import AuthenticationParameters, SentSms, MMSAttachment, UserAdditionalData, Contacts
 import json
 
@@ -405,6 +406,7 @@ def sms(request, sid=None):
     client = Client(auth_params.account_sid, auth_params.auth_token)
     phone_numbers = list()
     contacts = Contacts.objects.filter(user=request.user)
+    alphanumeric_countires = get_alphanumeric_countries()
     try:
         phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
     except Exception:

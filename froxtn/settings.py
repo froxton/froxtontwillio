@@ -148,3 +148,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'beqanaveriani3@gmail.com'
 EMAIL_HOST_PASSWORD = 'ufhoniudckwdcpsx'
 EMAIL_PORT = 587
+
+ALPHA_NUMERIC_COUNTRIES = "https://support.twilio.com/hc/en-us/articles/223133767-International-support-for-Alphanumeric-Sender-ID"
