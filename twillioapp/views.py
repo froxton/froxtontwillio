@@ -21,9 +21,10 @@ from django.http import JsonResponse
 from twilio.rest import Client
 
 from twillioapp.forms import RegistrationForm
-from twillioapp.utils import PasswordValidator, TokenGenerator, ResetPasswordTokenGenerator, user_activation, \
-    get_alphanumeric_countries
-from .models import AuthenticationParameters, SentSms, MMSAttachment, UserAdditionalData, Contacts
+from twillioapp.tasks import get_alphanumeric_countries
+from twillioapp.utils import PasswordValidator, TokenGenerator, ResetPasswordTokenGenerator, user_activation
+from .models import AuthenticationParameters, SentSms, MMSAttachment, UserAdditionalData, Contacts, \
+    AlphaNumericCountries
 import json
 
 
@@ -406,7 +407,7 @@ def sms(request, sid=None):
     client = Client(auth_params.account_sid, auth_params.auth_token)
     phone_numbers = list()
     contacts = Contacts.objects.filter(user=request.user)
-    alphanumeric_countires = get_alphanumeric_countries()
+    countries = AlphaNumericCountries.objects.all().values()
     try:
         phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
     except Exception:
@@ -414,6 +415,7 @@ def sms(request, sid=None):
     context = dict()
     context['phone_numbers'] = phone_numbers
     context['contacts'] = contacts
+    context['countries'] = countries
     if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
         context['error'] = "Invalid authentication parameters"
         return render(request, "sms.html", context)
@@ -429,6 +431,7 @@ def mms(request, sid=None):
     client = Client(auth_params.account_sid, auth_params.auth_token)
     phone_numbers = list()
     contacts = Contacts.objects.filter(user=request.user)
+    countries = AlphaNumericCountries.objects.all().values()
     try:
         phone_numbers = [x.phone_number for x in client.incoming_phone_numbers.list()]
     except Exception:
@@ -436,6 +439,7 @@ def mms(request, sid=None):
     context = dict()
     context['phone_numbers'] = phone_numbers
     context['contacts'] = contacts
+    context['countries'] = countries
     if len(request.path.split("/")) >= 3 and request.path.split("/")[2] == "failed":
         context['error'] = "Invalid authentication parameters"
         return render(request, "mms.html", context)

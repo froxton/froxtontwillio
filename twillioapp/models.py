@@ -73,12 +73,15 @@ class MMSAttachment(models.Model):
 
 class AlphaNumericCountries(models.Model):
     country = models.CharField(max_length=256, blank=False, null=False)
-    iso_2 = models.CharField(max_length=2, blank=True, null=True)
     code = models.CharField(max_length=16, blank=True, null=True)
     is_alpha = models.BooleanField(default=False)
 
     def __str__(self):
         return self.country
+
+    @property
+    def repr_value(self):
+        return f"({self.code}) {self.country}  - Alpha : {self.is_alpha}"
 
     class Meta:
         db_table = "twilio_alphanumeric_countries"
