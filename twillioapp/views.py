@@ -61,11 +61,14 @@ def send_sms_mms(request):
         try:
             request_domain_url = request.build_absolute_uri('/')[:-1]
             callback_url = f"{request_domain_url}/update_sms"
+            country_code = request_data.get("country-code")
+            receiver_number = request_data.get('to')
+            receiver = f"{country_code}{receiver_number}" if not "+" in receiver_number else receiver_number
 
             if send_type == 'sms':
                 from_num = request_data.get("from") or auth_params.phone_number
                 message = client.messages.create(from_=from_num, body=request_data.get("body"),
-                                                 to=request_data.get("to"), status_callback=callback_url)
+                                                 to=receiver, status_callback=callback_url)
             else:
                 file = request.FILES['mms_attachment']
                 media_url = ''
@@ -87,6 +90,7 @@ def send_sms_mms(request):
             context['phone_numbers'] = phone_numbers
             context['contacts'] = contacts
             context['error'] = str(e)
+            context['countries'] = AlphaNumericCountries.objects.all().values()
             if send_type == "sms":
                 return render(request, 'sms.html', context)
             else:

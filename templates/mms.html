@@ -34,7 +34,7 @@
                             {{ success }}
                         </div>
                     {% endif %}
-                    <form action="{% url 'send_mms' %}" method="POST" style="width: 50%" enctype="multipart/form-data">
+                    <form action="{% url 'send_mms' %}" method="POST" style="width: 50%" enctype="multipart/form-data" id="mmsForm">
                         {% csrf_token %}
                         <div class="form-group">
                             <label>Choose from number</label>
@@ -66,14 +66,27 @@
                         <div class="form-group">
                             <label for="receiver">To</label>
                             <div class="form-inline">
-                                <input class="form-control" name="to" id="receiver" placeholder="+995 xxx xxx xxx"
+                                <select class="form-control" name="country-code" id="country-code">
+                                    {% for country in countries %}
+                                        <option value="{{ country.code }}"
+                                                data-alphanumeric="{{ country.is_alpha }}">{{ country.country }}
+                                            ({{ country.code }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <input class="form-control" name="to" id="receiver" placeholder="123 456 789"
                                        style="width: 50%">
-                                <input type="button" class="btn btn-success" value="Add contacts"
-                                       style="display: none; margin-left: 10px;"
-                                       id="addContacts">
+
                             </div>
-                            <input type="text" class="form-control" style="display: none; margin-top: 5px;"
-                                   id="contactName" placeholder="Beka Naveriani">
+                        </div>
+                        <div class="form-group">
+                            <div class="form-inline">
+                                <input type="button" class="btn btn-success" value="Add contacts"
+                                       style="display: none;"
+                                       id="addContacts">
+                                <input type="text" class="form-control" style="display: none;"
+                                       id="contactName" placeholder="Beka Naveriani">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="body">MMS Body</label>
@@ -96,6 +109,21 @@
 
 {% block scriptblock %}
     <script>
+
+        let number_regex = /^(\+|[0-9])+[0-9]*$/;
+
+        document.querySelector("#mmsForm").addEventListener("submit", function (e) {
+            let country_code = document.getElementById("country-code");
+            let is_alpha = country_code.options[country_code.selectedIndex].getAttribute('data-alphanumeric');
+            let alphanumeric_sender = document.getElementById("from").value;
+
+            if (!(is_alpha === "True") && !(number_regex.test(alphanumeric_sender))) {
+                alert("Alphanumeric sender isn't supported in receiver country");
+                e.preventDefault();
+            }
+
+        });
+
         $("#addContacts").on('click', function () {
             let phone_number = $('#receiver').val();
             let contact_name = $('#contactName').val();
