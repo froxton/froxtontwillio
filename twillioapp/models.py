@@ -17,7 +17,7 @@ class Contacts(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     contact_name = models.CharField(max_length=256, blank=False, null=False)
     contact_number = models.CharField(max_length=32, blank=False, null=False)
-    contact_country = models.CharField(max_length=32, blank=False, null=False)
+    contact_country_code = models.CharField(max_length=16, blank=False, null=False)
 
     def __str__(self):
         return f"{self.contact_name} - {self.contact_number}"

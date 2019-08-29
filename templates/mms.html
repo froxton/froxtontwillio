@@ -34,7 +34,7 @@
                             {{ success }}
                         </div>
                     {% endif %}
-                    <form action="{% url 'send_mms' %}" method="POST" style="width: 50%" enctype="multipart/form-data" id="mmsForm">
+                    <form action="" method="POST" style="width: 50%" enctype="multipart/form-data" id="mmsForm">
                         {% csrf_token %}
                         <div class="form-group">
                             <label>Choose from number</label>

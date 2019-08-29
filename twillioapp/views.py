@@ -19,6 +19,7 @@ from django.core import signing
 from django.http import JsonResponse
 
 from twilio.rest import Client
+from twilio.twiml.messaging_response import *
 
 from twillioapp.forms import RegistrationForm
 from twillioapp.tasks import get_alphanumeric_countries
@@ -91,10 +92,7 @@ def send_sms_mms(request):
             context['contacts'] = contacts
             context['error'] = str(e)
             context['countries'] = AlphaNumericCountries.objects.all().values()
-            if send_type == "sms":
-                return render(request, 'sms.html', context)
-            else:
-                return render(request, 'mms.html', context)
+            return render(request, 'sms.html', context)
         else:
             smsSent = SentSms.objects.create(
                 user=user,
@@ -127,6 +125,14 @@ def dashboard(request):
 def logout_view(request):
     auth_logout(request)
     return HttpResponseRedirect("/")
+
+
+@require_POST
+def notify_received_sms(request):
+    print(request.body)
+    print(request.POST)
+    print(request.GET)
+    return HttpResponse("hello world")
 
 
 @require_http_methods(['GET', 'POST'])
@@ -382,6 +388,7 @@ def add_contact(request):
 
     contact_name = data.get("contactName")
     contact_number = data.get("contactNumber")
+    contact_country = data.get("phoneCountry")
 
     number_exists = user_contacts.filter(contact_number__iexact=contact_number)
 
@@ -392,7 +399,7 @@ def add_contact(request):
         user=user,
         contact_name=contact_name,
         contact_number=contact_number,
-        contact_country='GE'
+        contact_country_code=contact_country
     )
     return JsonResponse(data={"status": "success"})
 

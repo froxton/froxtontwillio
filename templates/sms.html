@@ -34,7 +34,7 @@
                             {{ success }}
                         </div>
                     {% endif %}
-                    <form action="{% url 'send_sms' %}" method="POST" style="width: 50%" id="smsForm">
+                    <form action="{% url 'send_message' %}" method="POST" style="width: 50%" id="smsForm">
                         {% csrf_token %}
                         <div class="form-group">
                             <label>Choose from number</label>
@@ -58,7 +58,8 @@
                                    style="width: 50%">
                             <select class="form-control" style="width: 50%" size="5" id="contact_numbers">
                                 {% for contact in contacts %}
-                                    <option value="{{ contact.contact_number }}">
+                                    <option value="{{ contact.contact_number }}"
+                                            data-country-code="{{ contact.contact_country_code }}">
                                         {{ contact.contact_name }} - {{ contact.contact_number }}</option>
                                 {% endfor %}
                             </select>
@@ -94,6 +95,19 @@
                                       rows="5"></textarea>
                             {#                            <p ><span id="charLimit">160</span> / <span id="charMax">160</span></p>#}
                         </div>
+
+                        <div class="form-group">
+                            <label for="messageType">Do you want to send MMS ?</label>
+                            <select id="messageType" class="form-control">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mms_attachment">MMS Attachment</label>
+                            <input type="file" class="form-control" name="mms_attachment" id="mms_attachment" disabled>
+                        </div>
                         <input type="hidden" name="send_type" value="sms">
                         <button class="form-control btn btn-success">Send SMS</button>
                     </form>
@@ -108,12 +122,25 @@
 
         let number_regex = /^(\+|[0-9])+[0-9]*$/;
 
+        $("#messageType").on("change", function () {
+           let value  = $(this).val();
+           if (value === "0") {
+               $("#mms_attachment").prop('disabled', true);
+               $("input[name='send_type']").val("sms");
+           }
+           else{
+               $("#mms_attachment").prop('disabled', false);
+               $("input[name='send_type']").val("mms");
+           }
+
+        });
+
         document.querySelector("#smsForm").addEventListener("submit", function (e) {
             let country_code = document.getElementById("country-code");
             let is_alpha = country_code.options[country_code.selectedIndex].getAttribute('data-alphanumeric');
             let alphanumeric_sender = document.getElementById("from").value;
 
-            if (!(is_alpha === "True") && !(number_regex.test(alphanumeric_sender))){
+            if (!(is_alpha === "True") && !(number_regex.test(alphanumeric_sender))) {
                 alert("Alphanumeric sender isn't supported in receiver country");
                 e.preventDefault();
             }
@@ -123,6 +150,7 @@
         $("#addContacts").on('click', function () {
             let phone_number = $('#receiver').val();
             let contact_name = $('#contactName').val();
+            let phone_country = $("#country-code").val();
 
             if (contact_name.length < 5) {
                 alert("Contact name length must be more then 5 symbols");
@@ -130,7 +158,8 @@
             }
             let data = {
                 contactNumber: phone_number,
-                contactName: contact_name
+                contactName: contact_name,
+                phoneCountry: phone_country
             };
 
             $.ajax({
@@ -162,8 +191,10 @@
         });
 
         $('#contact_numbers').on('change', function () {
+            let countryCode = $("#contact_numbers option:selected").attr("data-country-code");
             $('#receiver').val($(this).val());
-        })
+            $("#country-code").val(countryCode);
+        });
 
         $('#phoneNumberFilter').on('input', function () {
             let filterVal = $(this).val();
